@@ -1,5 +1,7 @@
 # CSc 8830 Module 3: Image Blurring - Spatial vs Frequency Domain
 
+CSc8830_Module3_Assignment/output/frequency_analysis_k15.png
+
 ## Assignment Overview
 
 Implement image blurring using two equivalent approaches and verify the **Convolution Theorem**:
