@@ -1,11 +1,6 @@
 # CSc 8830: Computer Vision - Module 2 Assignment
 ## Camera Calibration & Real-World Object Dimension Measurement
 
-**Student:** [Your Name]  
-**Course:** CSc 8830 - Computer Vision  
-**Semester:** Spring 2026  
-**Assignment:** Module 2 - Camera Calibration & Perspective Projection
-
 ---
 
 ## 📋 Project Overview
