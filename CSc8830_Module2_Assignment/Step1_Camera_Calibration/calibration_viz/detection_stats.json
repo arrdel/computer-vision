@@ -1,0 +1,184 @@
+{
+  "total_images": 25,
+  "successful_detections": 25,
+  "failed_detections": 0,
+  "detection_details": [
+    {
+      "image": "calib_001.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_002.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_003.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_004.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_005.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_006.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_007.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_008.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_009.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_010.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_011.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_012.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_013.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_014.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_015.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_016.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_017.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_018.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_019.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_020.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_021.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_022.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_023.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_024.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    },
+    {
+      "image": "calib_025.jpg",
+      "detected": true,
+      "corners_found": 49,
+      "expected_corners": 49
+    }
+  ],
+  "images_with_visualizations": [
+    "calibration_viz/viz_calib_001.jpg",
+    "calibration_viz/viz_calib_002.jpg",
+    "calibration_viz/viz_calib_003.jpg",
+    "calibration_viz/viz_calib_004.jpg",
+    "calibration_viz/viz_calib_005.jpg",
+    "calibration_viz/viz_calib_006.jpg",
+    "calibration_viz/viz_calib_007.jpg",
+    "calibration_viz/viz_calib_008.jpg",
+    "calibration_viz/viz_calib_009.jpg",
+    "calibration_viz/viz_calib_010.jpg",
+    "calibration_viz/viz_calib_011.jpg",
+    "calibration_viz/viz_calib_012.jpg",
+    "calibration_viz/viz_calib_013.jpg",
+    "calibration_viz/viz_calib_014.jpg",
+    "calibration_viz/viz_calib_015.jpg",
+    "calibration_viz/viz_calib_016.jpg",
+    "calibration_viz/viz_calib_017.jpg",
+    "calibration_viz/viz_calib_018.jpg",
+    "calibration_viz/viz_calib_019.jpg",
+    "calibration_viz/viz_calib_020.jpg",
+    "calibration_viz/viz_calib_021.jpg",
+    "calibration_viz/viz_calib_022.jpg",
+    "calibration_viz/viz_calib_023.jpg",
+    "calibration_viz/viz_calib_024.jpg",
+    "calibration_viz/viz_calib_025.jpg"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "phone": "iPhone 16 Pro Max",
+  "camera": "Main (Wide)",
+  "equiv_focal_length_mm": 24.0,
+  "actual_focal_length_mm": 5.333333333333333,
+  "sensor_width_mm": 8.0,
+  "sensor_height_mm": 6.0,
+  "image_width_px": 4032,
+  "image_height_px": 3024,
+  "fx_pixels": 2688.0,
+  "fy_pixels": 2688.0,
+  "cx_pixels": 2016.0,
+  "cy_pixels": 1512.0
+}

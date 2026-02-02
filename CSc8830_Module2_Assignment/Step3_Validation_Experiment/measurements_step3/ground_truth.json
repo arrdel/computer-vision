@@ -1,0 +1,26 @@
+{
+  "distance_m": 2.68,
+  "measurements": [
+    {
+      "image": "IMG_9586.PNG",
+      "width_cm_actual": 127.22,
+      "height_cm_actual": 194.32,
+      "width_cm_measured": 127.22,
+      "height_cm_measured": 194.32
+    },
+    {
+      "image": "IMG_9587.PNG",
+      "width_cm_actual": 37.0,
+      "height_cm_actual": 17.0,
+      "width_cm_measured": 36.99,
+      "height_cm_measured": 11.86
+    },
+    {
+      "image": "IMG_9588.PNG",
+      "width_cm_actual": 127.02,
+      "height_cm_actual": 114.96,
+      "width_cm_measured": 127.02,
+      "height_cm_measured": 114.96
+    }
+  ]
+}

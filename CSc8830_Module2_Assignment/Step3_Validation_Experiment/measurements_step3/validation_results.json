@@ -1,0 +1,25 @@
+{
+  "distance_m": 2.68,
+  "num_images": 3,
+  "metrics": {
+    "MAE_width_cm": 0.00333333333333267,
+    "MAE_height_cm": 1.7133333333333336,
+    "MAE_total_cm": 0.8583333333333332,
+    "RMSE_width_cm": 0.00577350269189511,
+    "RMSE_height_cm": 2.967580383634677,
+    "RMSE_total_cm": 2.0984001842673705,
+    "MAPE_width_pct": 0.009009009009007217,
+    "MAPE_height_pct": 10.078431372549021,
+    "MAPE_total_pct": 5.043720190779014,
+    "success_rate_pct": 66.66666666666666
+  },
+  "individual_results": [
+    {
+      "image": "IMG_9586.PNG",
+      "width_cm_actual": 127.22,
+      "height_cm_actual": 194.32,
+      "width_cm_measured": 127.22,
+      "height_cm_measured": 194.32
+    }
+  ]
+}

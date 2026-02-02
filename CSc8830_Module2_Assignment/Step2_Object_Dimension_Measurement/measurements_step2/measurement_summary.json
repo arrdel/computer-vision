@@ -1,0 +1,13 @@
+[
+  {
+    "image": "IMG_9623.jpeg",
+    "distance_m": 2.6,
+    "bbox_pixels": "3952\u00d72992",
+    "width_cm": 382.26,
+    "height_cm": 289.4,
+    "width_m": 3.8226,
+    "height_m": 2.894,
+    "area_cm2": 110628.42,
+    "focal_lengths": "fx=2688.0, fy=2688.0"
+  }
+]

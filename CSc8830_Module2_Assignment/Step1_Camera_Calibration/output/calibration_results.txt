@@ -1,0 +1,39 @@
+============================================================
+CAMERA CALIBRATION RESULTS
+============================================================
+
+CAMERA INTRINSIC MATRIX (K):
+------------------------------------------------------------
+[[1.35746161e+04 0.00000000e+00 3.34848079e+02]
+ [0.00000000e+00 1.35744086e+04 2.69329963e+02]
+ [0.00000000e+00 0.00000000e+00 1.00000000e+00]]
+
+FOCAL LENGTH:
+------------------------------------------------------------
+  fx = 13574.62 pixels
+  fy = 13574.41 pixels
+  Average = 13574.51 pixels
+
+PRINCIPAL POINT (Optical Center):
+------------------------------------------------------------
+  cx = 334.85 pixels
+  cy = 269.33 pixels
+
+DISTORTION COEFFICIENTS:
+------------------------------------------------------------
+  k1 (radial 1) = 0.066910
+  k2 (radial 2) = -0.015417
+  p1 (tangential 1) = 0.002090
+  p2 (tangential 2) = -0.000516
+  k3 (radial 3) = 0.041468
+
+CALIBRATION METRICS:
+------------------------------------------------------------
+  Total Reprojection Error: 0.0090 pixels
+  Number of Images Used: 25
+  Image Size: 600 x 600 pixels
+  Mean Error per Image: 0.0090 pixels
+  Std Error: 0.0063 pixels
+  Min Error: 0.0014 pixels
+  Max Error: 0.0250 pixels
+
