@@ -1,0 +1,502 @@
+\documentclass[11pt,letterpaper]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage[backend=bibtex,style=ieee]{biblatex}
+
+% ── Page style ────────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{CSc 8830: Computer Vision}
+\fancyhead[R]{Module 4 Assignment}
+\fancyfoot[C]{\thepage}
+
+% ── Title formatting ─────────────────────────────────────────────────────────
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+
+% ── Graphics path ────────────────────────────────────────────────────────────
+\graphicspath{
+  {images/}
+  {results/}
+  {comparison_results/}
+  {sam2_results/}
+}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── Title ────────────────────────────────────────────────────────────────────
+\begin{center}
+  {\LARGE\bfseries Thermal Animal Boundary Segmentation:\\
+   Traditional Computer Vision vs.\ SAM2}\\[12pt]
+  {\large CSc 8830: Computer Vision --- Module 4 Assignment}\\[8pt]
+  {\large Adele Chinda}\\[4pt]
+  {Department of Computer Science, Georgia State University}\\
+  {\texttt{arrdel} --- \url{https://github.com/arrdel/computer-vision}}\\[4pt]
+  {February 2026}
+\end{center}
+\vspace{0.5em}
+\hrule
+\vspace{1em}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{abstract}
+This report presents a traditional computer vision pipeline for detecting
+animal boundaries in thermal (infrared) camera images. The pipeline uses only
+classical OpenCV techniques---CLAHE enhancement, multi-strategy thresholding,
+Canny edge refinement, morphological operations, and contour-based boundary
+extraction---without any deep learning. We evaluate the approach on thermal
+sample images and compare results quantitatively against Meta's Segment
+Anything Model 2 (SAM2) using IoU, Dice coefficient, precision, and recall.
+Results show that the traditional CV pipeline achieves high precision
+($\approx$95\%) in localizing warm animal regions, while SAM2 provides
+broader, more inclusive segmentation masks. The two approaches exhibit a mean
+IoU of 0.49 and mean Dice of 0.64, revealing complementary strengths that
+highlight both the power and limitations of classical methods relative to
+foundation models.
+\end{abstract}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Introduction}
+\label{sec:intro}
+
+Thermal (infrared) imaging cameras are widely used for wildlife monitoring,
+search and rescue, and surveillance. Animals appear as bright (warm) regions
+against a cooler background, making thermal images well-suited for automated
+detection. However, accurate boundary delineation is challenging due to
+low spatial resolution, thermal bleed, and varying background temperatures.
+
+This assignment explores two paradigms for thermal animal segmentation:
+\begin{enumerate}[nosep]
+  \item A \textbf{traditional computer vision} pipeline using only OpenCV
+        functions and classical image processing.
+  \item \textbf{Meta's SAM2} (Segment Anything Model~2), a large-scale
+        foundation model for zero-shot segmentation.
+\end{enumerate}
+
+The goal is not to claim one approach is universally better, but to
+understand \emph{where} classical techniques succeed, where they fail, and
+how a modern foundation model compares on the same inputs.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Input Data}
+\label{sec:data}
+
+We use two thermal sample images (Table~\ref{tab:input-images}).
+
+\begin{table}[H]
+  \centering
+  \caption{Input thermal images.}
+  \label{tab:input-images}
+  \begin{tabular}{llcc}
+    \toprule
+    \textbf{Image} & \textbf{Resolution} & \textbf{Mean Intensity} & \textbf{Std Dev} \\
+    \midrule
+    sample1.png & $2560 \times 1441$ & 46.2 & 58.5 \\
+    sample2.png & $512 \times 512$ & 63.9 & 60.3 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.45\textwidth}
+    \includegraphics[width=\textwidth]{sample1.png}
+    \caption{Sample 1 ($2560 \times 1441$)}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.45\textwidth}
+    \includegraphics[width=\textwidth]{sample2.png}
+    \caption{Sample 2 ($512 \times 512$)}
+  \end{subfigure}
+  \caption{Input thermal images used for evaluation.}
+  \label{fig:input-images}
+\end{figure}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Method: Traditional CV Pipeline}
+\label{sec:method}
+
+The pipeline consists of five stages, each implemented entirely with OpenCV.
+Figure~\ref{fig:cv-pipeline} shows the intermediate outputs for both samples.
+
+\subsection{Step 1: Preprocessing}
+
+\begin{enumerate}[nosep]
+  \item \textbf{Grayscale conversion} --- \texttt{cv2.cvtColor(BGR2GRAY)}.
+  \item \textbf{CLAHE} (Contrast Limited Adaptive Histogram Equalization) ---
+        Enhances local contrast in thermal images with limited dynamic range.
+        Parameters: \texttt{clipLimit=3.0}, \texttt{tileGridSize=(8,8)}.
+  \item \textbf{Gaussian blur} --- Reduces sensor noise while preserving
+        edges. Kernel size: $7 \times 7$.
+\end{enumerate}
+
+\subsection{Step 2: Multi-Strategy Thresholding}
+
+A single thresholding method is unreliable on thermal images with varying
+background temperatures. We combine three strategies:
+
+\begin{itemize}[nosep]
+  \item \textbf{Otsu's thresholding}: Automatic global threshold that
+        maximizes inter-class variance.
+  \item \textbf{Adaptive thresholding}: Gaussian-weighted local thresholding
+        (block size 51, constant $C=-8$) that adapts to uneven illumination.
+  \item \textbf{Intensity-based thresholding}: Isolates thermally hot pixels
+        using
+        \[
+          T_{\text{hot}} = \mu + 1.0\,\sigma
+        \]
+        where $\mu$ and $\sigma$ are the mean and standard deviation of the
+        grayscale image.
+\end{itemize}
+
+The masks are combined as:
+\[
+  M_{\text{combined}} = M_{\text{Otsu}} \;\texttt{AND}\; M_{\text{intensity}}
+\]
+This intersection ensures only the brightest (warmest) regions survive.
+
+\subsection{Step 2b: Canny Edge Refinement}
+
+Canny edge detection (thresholds 30, 100) captures sharp thermal gradients at
+animal boundaries. The edge map is dilated (elliptical $5\times5$ kernel,
+2 iterations) and combined with the threshold mask to reinforce boundary
+regions.
+
+\subsection{Step 3: Morphological Refinement}
+
+An elliptical structuring element preserves organic animal shapes:
+\begin{enumerate}[nosep]
+  \item \textbf{Closing} ($11\times11$ kernel, 2 iterations): Fills internal
+        holes in the animal body.
+  \item \textbf{Opening} ($5\times5$ kernel, 3 iterations): Removes small
+        external noise blobs.
+  \item \textbf{Final closing} ($5\times5$ kernel, 1 iteration): Cleanup pass.
+\end{enumerate}
+
+\subsection{Step 4: Contour Detection \& Filtering}
+
+External contours are found with \texttt{cv2.findContours(RETR\_EXTERNAL)}.
+Multiple heuristic filters remove non-animal regions:
+\begin{itemize}[nosep]
+  \item Minimum area: $\max(500,\; 1\%\text{ of image area})$
+  \item Maximum area: 50\% of image area
+  \item Bounding box: reject if $>95\%$ of image width \emph{and} height
+  \item Edge-touching: reject contours touching $\geq 3$ image edges
+        (likely background)
+\end{itemize}
+
+\subsection{Step 5: Boundary Refinement}
+
+\begin{itemize}[nosep]
+  \item \textbf{Douglas--Peucker approximation} ($\epsilon = 0.005 \cdot
+        \text{perimeter}$) simplifies contour vertices.
+  \item \textbf{Convex hull} captures overall animal shape.
+  \item \textbf{Coordinate smoothing} via uniform 1-D filtering produces
+        natural, jitter-free boundaries.
+\end{itemize}
+
+% ── CV pipeline figure ───────────────────────────────────────────────────────
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sample1_01_cv_pipeline.png}
+  \caption{Traditional CV pipeline for \texttt{sample1}: Original $\to$ CLAHE
+           $\to$ Blur $\to$ Intensity Threshold $\to$ Otsu $\to$ Combined
+           $\to$ Morphological Refinement $\to$ Final Boundary Overlay.}
+  \label{fig:cv-pipeline}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sample2_01_cv_pipeline.png}
+  \caption{Traditional CV pipeline for \texttt{sample2}.}
+  \label{fig:cv-pipeline-s2}
+\end{figure}
+
+% ── Boundary detail figure ───────────────────────────────────────────────────
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{sample1_boundary.png}
+    \caption{Sample 1 boundary overlay}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{sample2_boundary.png}
+    \caption{Sample 2 boundary overlay}
+  \end{subfigure}
+  \caption{Final boundary overlays produced by the traditional CV pipeline
+           (green mask, red contour).}
+  \label{fig:boundary-overlays}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{sample1_boundary_detail.png}
+    \caption{Sample 1 boundary detail}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{sample2_boundary_detail.png}
+    \caption{Sample 2 boundary detail}
+  \end{subfigure}
+  \caption{Boundary refinement detail: raw contour vs.\ polygon approximation
+           vs.\ convex hull vs.\ smoothed contour.}
+  \label{fig:boundary-detail}
+\end{figure}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Method: SAM2 Segmentation}
+\label{sec:sam2}
+
+Meta's \textbf{Segment Anything Model 2} (SAM2) is a promptable foundation
+model trained on 11 million images with over 1 billion masks. We use:
+\begin{itemize}[nosep]
+  \item Model: \texttt{sam2.1\_hiera\_small} (176\,MB checkpoint)
+  \item \texttt{SAM2AutomaticMaskGenerator} with:
+        \texttt{points\_per\_side=32},
+        \texttt{pred\_iou\_thresh=0.7},
+        \texttt{stability\_score\_thresh=0.8}
+  \item Post-filtering: keep masks with area between 1\%--60\% of the image
+\end{itemize}
+
+SAM2 is used as a \emph{reference segmenter}---not ground truth---to provide
+a modern-baseline comparison for the classical pipeline.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sample1_02_sam2_masks.png}
+  \caption{SAM2 mask generation for \texttt{sample1}: all raw masks (left)
+           and filtered animal-sized masks (right).}
+  \label{fig:sam2-masks-s1}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sample2_02_sam2_masks.png}
+  \caption{SAM2 mask generation for \texttt{sample2}.}
+  \label{fig:sam2-masks-s2}
+\end{figure}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Evaluation Metrics}
+\label{sec:metrics}
+
+We compare the traditional CV mask ($M_{\text{CV}}$) against the SAM2
+combined mask ($M_{\text{SAM}}$) using four standard segmentation metrics:
+
+\begin{align}
+  \text{IoU} &= \frac{|M_{\text{CV}} \cap M_{\text{SAM}}|}
+                     {|M_{\text{CV}} \cup M_{\text{SAM}}|}
+  \label{eq:iou} \\[6pt]
+  \text{Dice} &= \frac{2\,|M_{\text{CV}} \cap M_{\text{SAM}}|}
+                      {|M_{\text{CV}}| + |M_{\text{SAM}}|}
+  \label{eq:dice} \\[6pt]
+  \text{Precision} &= \frac{|M_{\text{CV}} \cap M_{\text{SAM}}|}
+                           {|M_{\text{CV}}|}
+  \label{eq:prec} \\[6pt]
+  \text{Recall} &= \frac{|M_{\text{CV}} \cap M_{\text{SAM}}|}
+                        {|M_{\text{SAM}}|}
+  \label{eq:rec}
+\end{align}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Results}
+\label{sec:results}
+
+\subsection{Quantitative Results}
+
+Table~\ref{tab:results} reports the per-image and average metrics.
+
+\begin{table}[H]
+  \centering
+  \caption{Quantitative comparison: Traditional CV vs.\ SAM2.}
+  \label{tab:results}
+  \begin{tabular}{lcccccc}
+    \toprule
+    \textbf{Image} & \textbf{IoU} & \textbf{Dice} & \textbf{Precision}
+      & \textbf{Recall} & \textbf{CV Cov.\,(\%)} & \textbf{SAM2 Cov.\,(\%)} \\
+    \midrule
+    sample1 & 0.3230 & 0.4883 & 0.9952 & 0.3235 & 31.4 & 96.6 \\
+    sample2 & 0.6603 & 0.7954 & 0.9078 & 0.7078 & 40.9 & 52.5 \\
+    \midrule
+    \textbf{Average} & \textbf{0.4917} & \textbf{0.6419} & \textbf{0.9515}
+      & \textbf{0.5157} & \textbf{36.2} & \textbf{74.5} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Runtime comparison (NVIDIA GPU).}
+  \label{tab:runtime}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Image} & \textbf{CV Time (s)} & \textbf{SAM2 Time (s)} \\
+    \midrule
+    sample1 & 0.18 & 2.60 \\
+    sample2 & 0.01 & 1.21 \\
+    \midrule
+    \textbf{Average} & \textbf{0.09} & \textbf{1.91} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Qualitative Results: Side-by-Side Comparison}
+
+Figures~\ref{fig:comp-s1} and~\ref{fig:comp-s2} show the full comparison
+panels for each sample. Each figure includes: the original image, CV and SAM2
+overlays, binary masks, an overlap agreement map, boundary contour comparison,
+a metrics table, and a coverage bar chart.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sample1_03_comparison.png}
+  \caption{Full comparison for \texttt{sample1}: Traditional CV (green) vs.\
+           SAM2 (red). Overlap map shows agreement (yellow), CV-only (green),
+           and SAM2-only (red). IoU = 0.323.}
+  \label{fig:comp-s1}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sample2_03_comparison.png}
+  \caption{Full comparison for \texttt{sample2}. IoU = 0.660.}
+  \label{fig:comp-s2}
+\end{figure}
+
+\subsection{Cross-Image Summary}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{00_summary.png}
+  \caption{Overall summary: IoU and Dice per image (bar chart) and full
+           metrics table.}
+  \label{fig:summary}
+\end{figure}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Strengths of the Traditional CV Approach}
+
+\begin{itemize}[nosep]
+  \item \textbf{High precision ($\approx$95\%):} Almost all pixels flagged by
+        the CV pipeline fall within regions that SAM2 also identifies as
+        foreground. The strict Otsu $\cap$ Intensity thresholding effectively
+        eliminates false positives.
+  \item \textbf{Speed:} The classical pipeline runs in $<$0.2\,s per image,
+        roughly $\mathbf{20\times}$ faster than SAM2 on GPU.
+  \item \textbf{No training data required:} The approach is entirely
+        hand-crafted with interpretable, tunable parameters.
+  \item \textbf{Interpretability:} Every intermediate step (CLAHE, Otsu,
+        morphology, etc.)\ can be visualized and debugged independently.
+\end{itemize}
+
+\subsection{Limitations of the Traditional CV Approach}
+
+\begin{itemize}[nosep]
+  \item \textbf{Lower recall ($\approx$52\%):} The conservative thresholding
+        misses cooler extremities (legs, tail, ears) that SAM2 captures.
+  \item \textbf{Coverage gap:} CV masks cover 31--41\% of the image vs.\
+        52--97\% for SAM2, indicating the classical method segments only the
+        thermal ``core'' of the animal.
+  \item \textbf{Parameter sensitivity:} Performance varies across images;
+        the $\mu + 1.0\sigma$ threshold is a compromise that may over- or
+        under-segment depending on background temperature.
+  \item \textbf{Edge-touching heuristic:} Contours touching $\geq$3 edges are
+        rejected to avoid background blobs, but this fails if an animal is
+        positioned at the image corner.
+\end{itemize}
+
+\subsection{SAM2 Observations}
+
+\begin{itemize}[nosep]
+  \item SAM2 produces many more mask proposals (20--26 per image) and tends to
+        \emph{over-segment}, including background structures.
+  \item The area-based filtering (1--60\%) is a necessary post-processing step
+        to obtain reasonable animal masks.
+  \item On \texttt{sample1}, SAM2 coverage (96.6\%) is much higher than CV
+        (31.4\%), suggesting SAM2 includes non-animal thermal regions that the
+        classical method correctly rejects.
+\end{itemize}
+
+\subsection{Key Takeaways}
+
+\begin{enumerate}[nosep]
+  \item Classical CV excels at \emph{precise} segmentation of the dominant
+        thermal signature but struggles with completeness.
+  \item SAM2 excels at \emph{comprehensive} segmentation but requires
+        post-filtering to remove spurious masks.
+  \item A hybrid approach---using SAM2 proposals refined by thermal-aware CV
+        heuristics---could combine the strengths of both paradigms.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented a five-stage traditional computer vision pipeline for thermal
+animal boundary segmentation and evaluated it against SAM2. The classical
+approach achieves high precision and fast inference without any training data,
+while SAM2 provides higher recall at the cost of over-segmentation and
+significantly longer runtime. The complementary strengths of both methods
+suggest that future work could explore a hybrid pipeline that uses foundation
+model proposals filtered by domain-specific thermal heuristics.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section*{Reproducibility}
+
+All code is available at
+\url{https://github.com/arrdel/computer-vision} in the
+\texttt{CSc8830\_Module4\_Assignment/} directory.
+
+\begin{verbatim}
+# Run traditional CV segmentation
+python thermal_segmentation.py --image_dir images/
+
+# Run full comparison (CV + SAM2 + visualizations)
+python run_full_comparison.py
+\end{verbatim}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section*{References}
+
+\begin{enumerate}[label={[\arabic*]},nosep]
+  \item S.\ Kirillov, E.\ Mintun, N.\ Ravi, et al.,
+        ``Segment Anything,'' \emph{ICCV}, 2023.
+  \item N.\ Ravi, V.\ Gabeur, Y.-T.\ Hu, et al.,
+        ``SAM 2: Segment Anything in Images and Videos,'' \emph{arXiv
+        preprint arXiv:2408.00714}, 2024.
+  \item N.\ Otsu, ``A Threshold Selection Method from Gray-Level
+        Histograms,'' \emph{IEEE Trans.\ Syst.\ Man Cybern.}, vol.~9,
+        no.~1, pp.~62--66, 1979.
+  \item J.\ Canny, ``A Computational Approach to Edge Detection,''
+        \emph{IEEE Trans.\ Pattern Anal.\ Mach.\ Intell.}, vol.~8, no.~6,
+        pp.~679--698, 1986.
+  \item K.\ Zuiderveld, ``Contrast Limited Adaptive Histogram
+        Equalization,'' in \emph{Graphics Gems IV}, Academic Press, 1994,
+        pp.~474--485.
+  \item D.\ Douglas and T.\ Peucker, ``Algorithms for the Reduction of the
+        Number of Points Required to Represent a Digitized Line or Its
+        Caricature,'' \emph{Cartographica}, vol.~10, no.~2, pp.~112--122,
+        1973.
+\end{enumerate}
+
+\end{document}
