@@ -1,0 +1,4 @@
+checkpoints/sam2.1_hiera_small.pt
+__pycache__/
+*.pyc
+bfg.jar
