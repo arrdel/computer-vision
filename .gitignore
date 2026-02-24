@@ -1,20 +1,25 @@
-# Ignore all directories
-*
+# Ignore all files and directories by default
+/*
+/.*
 
 # Except for the CSc8830 folders and facemetrics
-!CSc8830_Module2_Assignment/
-!CSc8830_Module2_Assignment/**
-!CSc8830_Module3_Assignment/
-!CSc8830_Module3_Assignment/**
-!CSc8830_Module4_Assignment/
-!CSc8830_Module4_Assignment/**
-!CSc8830_Module5_Assignment/
-!CSc8830_Module5_Assignment/**
-!facemetrics/
-!facemetrics/**
+!/CSc8830_Module2_Assignment/
+!/CSc8830_Module2_Assignment/**
+!/CSc8830_Module3_Assignment/
+!/CSc8830_Module3_Assignment/**
+!/CSc8830_Module4_Assignment/
+!/CSc8830_Module4_Assignment/**
+!/CSc8830_Module5_Assignment/
+!/CSc8830_Module5_Assignment/**
+!/CSc8830_Module6_Assignment/
+!/CSc8830_Module6_Assignment/**
+!/facemetrics/
+!/facemetrics/**
+!HARMONIC.pdf
+!project checkpoint 1.pdf
 
 # Also track README.md
-!README.md
+!/README.md
 !.gitignore
 
 # Python cache and virtual environments
