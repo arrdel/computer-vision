@@ -1,0 +1,47 @@
+# ============================================================
+# FaceMetrics Configuration
+# ============================================================
+
+video:
+  path: "data/videos/study_session.mp4"   # Path to input video
+  fps: null                                # Auto-detect from video if null
+  resize_width: 960                        # Resize frame width (null = no resize)
+
+# --- Task A: Blink Detection ---
+blink:
+  # Eye Aspect Ratio (EAR) threshold to detect a closed eye
+  ear_threshold: 0.21
+  # Minimum consecutive frames below threshold to count as one blink
+  min_consec_frames: 2
+  # Smoothing window for EAR signal (odd number)
+  smoothing_window: 5
+  # Log per-frame EAR values
+  log_ear: true
+
+# --- Task B: Face Dimension Estimation ---
+measurement:
+  # Known reference distance for pixel-to-mm calibration (mm)
+  # Average human interpupillary distance ~63mm
+  reference_distance_mm: 63.0
+  reference_landmark_pair: ["left_pupil", "right_pupil"]
+  # Which dimensions to measure
+  targets:
+    - eyes       # width & height of each eye
+    - face       # head-to-chin & ear-to-ear
+    - nose       # nose width & height
+    - mouth      # mouth width & height
+
+# --- MediaPipe Face Mesh settings ---
+mediapipe:
+  max_num_faces: 1
+  refine_landmarks: true          # Enables iris landmarks for better eye tracking
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+
+# --- Output ---
+output:
+  blink_log: "output/blink_logs/blink_log.csv"
+  measurement_log: "output/measurements/measurements.csv"
+  summary: "output/summary.json"
+  annotated_video: "output/annotated_output.mp4"
+  plots_dir: "output/plots"

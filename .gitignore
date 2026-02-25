@@ -1,11 +1,17 @@
 # Ignore all directories
 *
 
-# Except for the CSc8830 folders
+# Except for the CSc8830 folders and facemetrics
 !CSc8830_Module2_Assignment/
 !CSc8830_Module2_Assignment/**
 !CSc8830_Module3_Assignment/
 !CSc8830_Module3_Assignment/**
+!CSc8830_Module4_Assignment/
+!CSc8830_Module4_Assignment/**
+!CSc8830_Module5_Assignment/
+!CSc8830_Module5_Assignment/**
+!facemetrics/
+!facemetrics/**
 
 # Also track README.md
 !README.md

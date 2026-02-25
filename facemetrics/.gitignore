@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large data files (download separately)
+data/videos/*.mp4
+data/videos/*.avi
+data/videos/*.mov
+data/videos/*.mkv
+data/videos/files/
+data/videos/selfie_and_video.csv
+data/face_landmarker_v2_with_blendshapes.task
+*.zip
+
+# Output artifacts (reproducible)
+output/batch_report/
+output/plots/
+output/*.json
+output/*.mp4
+output/blink_logs/*.csv
+output/measurements/*.csv
+
+# Misc
+*.log
+.env
