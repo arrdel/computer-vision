@@ -1,0 +1,51 @@
+# LLM Robot Control Configuration
+
+# --- LLM Settings ---
+llm:
+  provider: "openai"            # "openai", "local", or "huggingface"
+  model: "gpt-4o"               # Model name
+  temperature: 0.2              # Low temperature for deterministic plans
+  max_tokens: 2048
+  api_key_env: "OPENAI_API_KEY" # Environment variable name for API key
+
+# --- Perception Settings ---
+perception:
+  model: "ViT-B-32"             # CLIP model variant
+  pretrained: "openai"          # Pretrained weights source
+  device: "cpu"                 # "cpu", "cuda", or "mps"
+  confidence_threshold: 0.25    # Minimum confidence for object detection
+  max_objects: 20               # Maximum objects to track in scene
+
+# --- Robot Settings ---
+robot:
+  type: "manipulator"           # "manipulator" or "mobile"
+  dof: 6                        # Degrees of freedom
+  workspace_bounds:             # Workspace limits [min, max] for x, y, z
+    x: [-1.0, 1.0]
+    y: [-1.0, 1.0]
+    z: [0.0, 1.5]
+  max_velocity: 0.5             # m/s
+  max_acceleration: 1.0         # m/s^2
+  gripper:
+    type: "parallel_jaw"
+    max_width: 0.08             # meters
+
+# --- Simulation Settings ---
+simulation:
+  enabled: true
+  grid_size: [800, 600]         # Pixel dimensions
+  cell_size: 40                 # Pixels per grid cell
+  fps: 30
+  render: true
+
+# --- Action Space ---
+action_space:
+  primitives:
+    - "move_to"        # Move end-effector to (x, y, z)
+    - "grasp"          # Close gripper
+    - "release"        # Open gripper
+    - "push"           # Push object in direction
+    - "rotate"         # Rotate end-effector
+    - "wait"           # Pause for duration
+    - "navigate"       # Mobile base navigation
+    - "look_at"        # Orient camera toward target
