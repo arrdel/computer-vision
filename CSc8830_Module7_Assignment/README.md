@@ -9,6 +9,64 @@ This assignment implements:
 
 ---
 
+## Assignment Requirements & Responses
+
+### Part 1 — Optical Flow & Motion Tracking
+
+- **Compute optical flow and visualize the same as a video.**
+  > ✅ Dense Farnebäck and sparse Lucas-Kanade optical flow are computed for both videos and saved as `.mp4` visualisations (HSV colour-coded dense flow, tracked feature points, arrow overlays, and a combined side-by-side view). See `output/optical_flow/video*_dense_flow.mp4`, `video*_sparse_flow.mp4`, `video*_arrows_flow.mp4`, `video*_combined_flow.mp4`.
+
+- **Explain what information can be inferred from the optical flow information. Show evidence.**
+  > ✅ Five types of information are inferred and evidenced in the flow analysis figures (`video*_flow_analysis.png`) and text summaries (`video*_flow_inference.txt`):
+  > 1. **Object speed & direction** — flow magnitude and angle histograms.
+  > 2. **Moving vs. static segmentation** — thresholded motion mask separating foreground from background, with bounding-box overlays (`video*_moving_objects.png`).
+  > 3. **Divergence** — positive = expansion (object approaching); negative = contraction (object receding).
+  > 4. **Curl** — non-zero curl reveals rotational motion.
+  > 5. **Time-to-contact** — radial flow pattern from the Focus of Expansion.
+
+- **Derive the motion tracking equations from fundamentals and set up the problem of tracking for two image frames.**
+  > ✅ Full derivation in `report.tex` §1.4:
+  > - Brightness Constancy Assumption → Optical Flow Constraint Equation (OFCE): $I_x u + I_y v + I_t = 0$.
+  > - Lucas-Kanade least-squares solution: $(u, v)^T = (\mathbf{A}^T\mathbf{A})^{-1}\mathbf{A}^T\mathbf{b}$ over a local window.
+  > - Structure tensor, eigenvalue analysis (Shi-Tomasi criterion), and the step-by-step two-frame tracking setup.
+  > - Also implemented from scratch in `optical_flow.py → manual_lucas_kanade()`, with per-point $\mathbf{A}^T\mathbf{A}$ matrices and eigenvalues printed in the tracking validation output.
+
+- **Derive/describe bilinear interpolation.**
+  > ✅ Full derivation in `report.tex` §1.5 and demonstrated numerically in `optical_flow.py → demonstrate_bilinear_interpolation()`. Output: `video*_bilinear_interp.png` (weight diagram) and `video*_bilinear_interp.txt` (step-by-step computation showing manual result matches OpenCV's `remap` to <0.05 px).
+
+- **Pick two consecutive frames from each of the videos and validate the theoretical result of tracking with actual pixel locations.**
+  > ✅ For each video, frames at mid-clip (frame 450 → 451) are selected. 20 Shi-Tomasi corners are tracked using 4 independent methods:
+  > 1. Manual single-scale Lucas-Kanade (our implementation).
+  > 2. OpenCV pyramidal Lucas-Kanade.
+  > 3. Dense Farnebäck flow lookup.
+  > 4. Template matching (NCC) as ground truth.
+  >
+  > Per-point error tables and detailed $\mathbf{A}^T\mathbf{A}$ computations for the first 3 points are in `video*_tracking_validation.txt`. Visual comparison in `video*_tracking_validation.png`.
+  > - **Video 1**: Manual LK mean error = 0.35 px, OpenCV LK = 0.22 px.
+  > - **Video 2**: Manual LK mean error = 4.26 px, OpenCV pyramidal LK = 2.93 px (larger motion benefits from pyramid).
+
+### Part 2 — Structure from Motion
+
+- **Construct an example of structure from motion using data from four different viewpoints of an object of your interest.**
+  > ✅ Four viewpoints are extracted from the video (evenly spaced frames). SIFT features are detected (5000 per view), matched with Lowe's ratio test, and an incremental SfM pipeline recovers camera poses and triangulates 753 3D points. See `output/sfm/sfm_input_views.png` and `output/sfm/sfm_3d_view*.png`.
+
+- **Try to recreate the points on the object so that its boundary can be estimated (consider a flat/2D planar object for simplicity).**
+  > ✅ The 3D point cloud is projected onto the dominant XZ plane and a convex hull is computed to estimate the object boundary. See `output/sfm/sfm_boundary_topdown.png`.
+
+- **Show your mathematical workouts and calculations in your submission.**
+  > ✅ Full mathematical workouts are provided in two places:
+  > - **`report.tex`** §2: Camera projection model, epipolar geometry ($\mathbf{E} = [\mathbf{t}]_\times \mathbf{R}$, $\mathbf{F} = \mathbf{K}^{-T}\mathbf{E}\mathbf{K}^{-1}$), and DLT triangulation ($\mathbf{A}\mathbf{X} = \mathbf{0}$ solved via SVD).
+  > - **`output/sfm/camera_poses.txt`**: Numerical workouts including all 4 camera $\mathbf{K}$, $\mathbf{R}$, $\mathbf{t}$, $\mathbf{P}$ matrices; the skew-symmetric $[\mathbf{t}]_\times$; the essential and fundamental matrices; epipolar constraint verification ($\mathbf{x}_2^T \mathbf{F} \mathbf{x}_1 \approx 0$); and a complete DLT triangulation example with SVD solution and reprojection error < 0.3 px.
+
+- **Submit your images used including information about camera positions and camera parameters.**
+  > ✅ The 4 input images are shown in `output/sfm/sfm_input_views.png`. Camera parameters and positions for all views are recorded in `output/sfm/camera_poses.txt`, including:
+  > - Intrinsic matrix $\mathbf{K}$ (focal length, principal point).
+  > - Rotation $\mathbf{R}$ and translation $\mathbf{t}$ per view.
+  > - Camera centre in world coordinates: $\mathbf{C} = -\mathbf{R}^T \mathbf{t}$.
+  > - Axis-angle rotation representation (degrees and axis vector).
+
+---
+
 ## Directory Structure
 
 ```
