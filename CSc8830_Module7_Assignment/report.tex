@@ -1,0 +1,374 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{subcaption}
+\usepackage{bm}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{red},
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+}
+
+\title{CSc 8830 --- Module 7 Assignment\\
+\large Optical Flow, Motion Tracking \& Structure from Motion}
+\author{Student Name}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+% ============================================================================
+\section{Part 1: Optical Flow \& Motion Tracking}
+% ============================================================================
+
+\subsection{Video Selection}
+
+Two videos were selected to demonstrate optical flow under different motion types:
+
+\begin{enumerate}
+  \item \textbf{Video 1}: (Describe video 1 content --- e.g., ``highway dashcam footage showing cars moving laterally'')
+  \item \textbf{Video 2}: (Describe video 2 content --- e.g., ``drone aerial footage with rotation and approach'')
+\end{enumerate}
+
+Each video was processed for a 30-second segment containing continuous motion.
+
+% --------------------------------------------------------------------------
+\subsection{Optical Flow Computation}
+
+\subsubsection{Dense Optical Flow (Farneb\"ack)}
+
+The Farneb\"ack method approximates each neighbourhood of a frame by a quadratic polynomial:
+\[
+  f(\mathbf{x}) \approx \mathbf{x}^T \mathbf{A} \mathbf{x} + \mathbf{b}^T \mathbf{x} + c
+\]
+By equating polynomial expansions at time $t$ and $t+1$ with displacement $\mathbf{d}$, the flow at every pixel is solved via least squares.  The result is a dense 2D vector field $(u, v)$.
+
+\textbf{Visualisation:} The flow field is colour-coded using HSV:
+\begin{itemize}
+  \item \textbf{Hue} $\leftarrow$ flow direction $\theta = \arctan(v/u)$
+  \item \textbf{Value} $\leftarrow$ flow magnitude $\sqrt{u^2 + v^2}$
+  \item Saturation is set to maximum
+\end{itemize}
+
+Output videos: \texttt{*\_dense\_flow.mp4}, \texttt{*\_arrows\_flow.mp4}
+
+\subsubsection{Sparse Optical Flow (Lucas--Kanade)}
+
+The Lucas--Kanade method tracks a set of feature points detected by the Shi--Tomasi corner detector.  It is derived in Section~\ref{sec:lk-derivation}.
+
+Output video: \texttt{*\_sparse\_flow.mp4}
+
+% --------------------------------------------------------------------------
+\subsection{Information Inferred from Optical Flow}
+\label{sec:flow-inference}
+
+The optical flow field encodes rich information about the scene.  Evidence for each is shown in the generated \texttt{*\_flow\_analysis.png} and \texttt{*\_moving\_objects.png} figures.
+
+\begin{enumerate}
+  \item \textbf{Object speed and direction:}  The magnitude $\|\mathbf{u}\|$ gives speed; the angle gives direction.  See panel (b) and (c) in the analysis figure.
+
+  \item \textbf{Moving vs.\ static segmentation:}  Thresholding the magnitude at $\mu + 1.5\sigma$ separates moving foreground from static background.  See panel (d) and the bounding-box overlay.
+
+  \item \textbf{Divergence} ($\nabla \cdot \mathbf{u} = \frac{\partial u}{\partial x} + \frac{\partial v}{\partial y}$):
+  \begin{itemize}
+    \item Positive $\rightarrow$ expansion (object approaching camera)
+    \item Negative $\rightarrow$ contraction (object receding)
+  \end{itemize}
+  See panel (e).
+
+  \item \textbf{Curl} ($\nabla \times \mathbf{u} = \frac{\partial v}{\partial x} - \frac{\partial u}{\partial y}$):
+  Non-zero curl indicates rotational motion.  See panel (f).
+
+  \item \textbf{Time-to-contact:}  For forward camera motion, the Focus of Expansion (FOE) can be identified.
+\end{enumerate}
+
+% --------------------------------------------------------------------------
+\subsection{Derivation of Motion Tracking Equations from Fundamentals}
+\label{sec:lk-derivation}
+
+\subsubsection{Brightness Constancy Assumption}
+
+Assume the intensity of a point does not change as it moves:
+\[
+  I(x, y, t) = I(x + \delta x,\; y + \delta y,\; t + \delta t)
+\]
+Taylor-expanding the right side to first order:
+\[
+  I(x,y,t) \approx I(x,y,t) + \frac{\partial I}{\partial x}\delta x + \frac{\partial I}{\partial y}\delta y + \frac{\partial I}{\partial t}\delta t
+\]
+Subtracting and dividing by $\delta t$:
+\begin{equation}
+  \boxed{I_x u + I_y v + I_t = 0}
+  \label{eq:ofce}
+\end{equation}
+where $u = dx/dt$, $v = dy/dt$ are the optical flow components, and $I_x, I_y, I_t$ are the spatio-temporal image gradients.
+
+This is one equation in two unknowns --- the \textbf{aperture problem}.
+
+\subsubsection{Lucas--Kanade Method}
+
+Assume the flow $(u, v)$ is constant within a local window $\mathcal{W}$ of size $w \times w$ centred at pixel $(x_0, y_0)$.  For each pixel $i$ in $\mathcal{W}$ we have:
+\[
+  I_{x_i} u + I_{y_i} v = -I_{t_i}
+\]
+
+Stacking all $n = w^2$ equations:
+\[
+  \underbrace{\begin{pmatrix}
+    I_{x_1} & I_{y_1} \\
+    I_{x_2} & I_{y_2} \\
+    \vdots & \vdots \\
+    I_{x_n} & I_{y_n}
+  \end{pmatrix}}_{\mathbf{A} \in \mathbb{R}^{n \times 2}}
+  \begin{pmatrix} u \\ v \end{pmatrix}
+  =
+  \underbrace{-\begin{pmatrix}
+    I_{t_1} \\ I_{t_2} \\ \vdots \\ I_{t_n}
+  \end{pmatrix}}_{\mathbf{b} \in \mathbb{R}^n}
+\]
+
+The least-squares solution is:
+\begin{equation}
+  \boxed{
+  \begin{pmatrix} u \\ v \end{pmatrix}
+  = (\mathbf{A}^T \mathbf{A})^{-1} \mathbf{A}^T \mathbf{b}
+  }
+  \label{eq:lk}
+\end{equation}
+
+where the \textbf{structure tensor} (Harris matrix) is:
+\[
+  \mathbf{A}^T \mathbf{A} =
+  \begin{pmatrix}
+    \sum I_{x}^2 & \sum I_x I_y \\
+    \sum I_x I_y & \sum I_y^2
+  \end{pmatrix}
+  = \begin{pmatrix} S_{xx} & S_{xy} \\ S_{xy} & S_{yy} \end{pmatrix}
+\]
+and
+\[
+  \mathbf{A}^T \mathbf{b} = -\begin{pmatrix}
+    \sum I_x I_t \\
+    \sum I_y I_t
+  \end{pmatrix}
+  = \begin{pmatrix} -S_{xt} \\ -S_{yt} \end{pmatrix}
+\]
+
+For a unique solution, $\mathbf{A}^T\mathbf{A}$ must be invertible, which requires two sufficiently large eigenvalues $\lambda_1, \lambda_2$.  This is exactly the \textbf{Shi--Tomasi corner criterion}: a point is a good feature to track if $\min(\lambda_1, \lambda_2) > \tau$.
+
+\subsubsection{Setting Up Tracking for Two Image Frames}
+
+Given frame $I$ at time $t$ and frame $J$ at time $t+1$:
+\begin{enumerate}
+  \item Compute spatial gradients $I_x = \frac{\partial I}{\partial x}$ and $I_y = \frac{\partial I}{\partial y}$ using Sobel kernels.
+  \item Compute temporal gradient $I_t = J - I$.
+  \item For each feature point $\mathbf{p} = (x_0, y_0)$, collect gradients over the $21 \times 21$ window $\mathcal{W}$:
+  \begin{align}
+    S_{xx} &= \sum_{(x,y) \in \mathcal{W}} I_x(x,y)^2 \\
+    S_{yy} &= \sum_{(x,y) \in \mathcal{W}} I_y(x,y)^2 \\
+    S_{xy} &= \sum_{(x,y) \in \mathcal{W}} I_x(x,y) I_y(x,y) \\
+    S_{xt} &= \sum_{(x,y) \in \mathcal{W}} I_x(x,y) I_t(x,y) \\
+    S_{yt} &= \sum_{(x,y) \in \mathcal{W}} I_y(x,y) I_t(x,y)
+  \end{align}
+  \item Solve:
+  \[
+    \begin{pmatrix} u \\ v \end{pmatrix} =
+    \frac{1}{S_{xx}S_{yy} - S_{xy}^2}
+    \begin{pmatrix} S_{yy} & -S_{xy} \\ -S_{xy} & S_{xx} \end{pmatrix}
+    \begin{pmatrix} -S_{xt} \\ -S_{yt} \end{pmatrix}
+  \]
+  \item Predicted location in frame $J$: $\mathbf{p}' = (x_0 + u,\; y_0 + v)$.
+\end{enumerate}
+
+In practice, \textbf{pyramidal Lucas--Kanade} is used: the algorithm runs coarse-to-fine on an image pyramid to handle large displacements.  Our manual implementation uses single scale for theoretical demonstration; OpenCV's \texttt{calcOpticalFlowPyrLK} uses pyramids.
+
+% --------------------------------------------------------------------------
+\subsection{Bilinear Interpolation}
+\label{sec:bilinear}
+
+When the predicted location $\mathbf{p}'$ falls at sub-pixel coordinates $(x, y)$, we need to interpolate the image intensity.  Let:
+\[
+  x_0 = \lfloor x \rfloor, \quad x_1 = x_0 + 1, \quad y_0 = \lfloor y \rfloor, \quad y_1 = y_0 + 1
+\]
+\[
+  a = x - x_0, \quad b = y - y_0
+\]
+
+\textbf{Step 1 --- Linear interpolation along $x$:}
+\begin{align}
+  f(x, y_0) &= (1 - a)\, I(x_0, y_0) + a\, I(x_1, y_0) \\
+  f(x, y_1) &= (1 - a)\, I(x_0, y_1) + a\, I(x_1, y_1)
+\end{align}
+
+\textbf{Step 2 --- Linear interpolation along $y$:}
+\[
+  f(x, y) = (1 - b)\, f(x, y_0) + b\, f(x, y_1)
+\]
+
+\textbf{Expanded formula:}
+\begin{equation}
+  \boxed{
+    I(x, y) = (1-a)(1-b)\,I(x_0,y_0) + a(1-b)\,I(x_1,y_0)
+             + (1-a)\,b\,I(x_0,y_1) + a\,b\,I(x_1,y_1)
+  }
+  \label{eq:bilinear}
+\end{equation}
+
+\textbf{Matrix form:}
+\[
+  I(x,y) = \begin{pmatrix} 1-a & a \end{pmatrix}
+  \begin{pmatrix} I(x_0,y_0) & I(x_0,y_1) \\ I(x_1,y_0) & I(x_1,y_1) \end{pmatrix}
+  \begin{pmatrix} 1-b \\ b \end{pmatrix}
+\]
+
+Bilinear interpolation is used inside the LK tracker to evaluate image gradients and intensities at sub-pixel locations during iterative refinement.
+
+The numerical demonstration (see \texttt{*\_bilinear\_interp.txt}) confirms that our manual computation matches OpenCV's \texttt{remap} result to machine precision.
+
+% --------------------------------------------------------------------------
+\subsection{Tracking Validation}
+
+For each video, two consecutive frames from the middle of the 30-second clip were selected:
+\begin{itemize}
+  \item 20 Shi--Tomasi corners detected in frame $t$.
+  \item Predicted locations in frame $t+1$ computed using:
+  \begin{enumerate}
+    \item \textbf{Manual single-scale Lucas--Kanade} (our implementation of Eq.~\ref{eq:lk}).
+    \item \textbf{OpenCV pyramidal Lucas--Kanade} (\texttt{calcOpticalFlowPyrLK}).
+    \item \textbf{Dense Farneb\"ack flow} (independent method).
+    \item \textbf{Template matching} (NCC-based ground truth).
+  \end{enumerate}
+\end{itemize}
+
+\textbf{Results:}  See \texttt{*\_tracking\_validation.txt} and \texttt{*\_tracking\_validation.png}.
+
+The detailed LK computation for the first three points shows the actual $\mathbf{A}^T\mathbf{A}$ matrices, eigenvalues, and solutions, confirming that the theoretical tracking equations produce positions consistent with the template-matching ground truth.
+
+The pyramidal LK consistently outperforms single-scale LK for large displacements, validating the need for multi-scale processing.
+
+
+% ============================================================================
+\newpage
+\section{Part 2: Structure from Motion}
+% ============================================================================
+
+\subsection{Setup}
+
+A flat/planar object was captured from \textbf{four different viewpoints}.  The images are loaded, resized to 800px width, and features are detected using SIFT.
+
+\textbf{Camera parameters:}
+\begin{itemize}
+  \item Intrinsic matrix $\mathbf{K}$ estimated as $f \approx 1.2 \times \max(w,h)$, with principal point at image centre.
+  \item If calibration data is available, exact parameters can be provided via \texttt{--K}.
+\end{itemize}
+
+\subsection{Mathematical Foundation}
+
+\subsubsection{Camera Projection Model}
+
+A 3D point $\mathbf{X} = (X, Y, Z, 1)^T$ in homogeneous world coordinates projects to pixel $\mathbf{x} = (u, v, 1)^T$ via:
+\begin{equation}
+  \lambda \mathbf{x} = \mathbf{K} [\mathbf{R} \mid \mathbf{t}] \mathbf{X} = \mathbf{P} \mathbf{X}
+  \label{eq:projection}
+\end{equation}
+where:
+\[
+  \mathbf{K} = \begin{pmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{pmatrix}, \quad
+  \mathbf{P} = \mathbf{K}[\mathbf{R} \mid \mathbf{t}] \in \mathbb{R}^{3 \times 4}
+\]
+
+\subsubsection{Epipolar Geometry and the Essential Matrix}
+
+For corresponding points $\mathbf{x}_1, \mathbf{x}_2$ in two views:
+\begin{equation}
+  \hat{\mathbf{x}}_2^T \mathbf{E}\, \hat{\mathbf{x}}_1 = 0
+  \label{eq:epipolar}
+\end{equation}
+where $\hat{\mathbf{x}} = \mathbf{K}^{-1}\mathbf{x}$ are normalised coordinates and:
+\[
+  \mathbf{E} = [\mathbf{t}]_\times \mathbf{R}, \quad
+  [\mathbf{t}]_\times = \begin{pmatrix} 0 & -t_z & t_y \\ t_z & 0 & -t_x \\ -t_y & t_x & 0 \end{pmatrix}
+\]
+
+The \textbf{Fundamental matrix} relates pixel coordinates directly:
+\[
+  \mathbf{F} = \mathbf{K}^{-T} \mathbf{E}\, \mathbf{K}^{-1}, \quad \mathbf{x}_2^T \mathbf{F}\, \mathbf{x}_1 = 0
+\]
+
+\subsubsection{Triangulation (DLT Method)}
+
+Given $\mathbf{P}_1, \mathbf{P}_2$ and correspondence $\mathbf{x}_1 \leftrightarrow \mathbf{x}_2$, eliminate the scale factors:
+\[
+  \mathbf{x} \times (\mathbf{P} \mathbf{X}) = \mathbf{0}
+\]
+
+This gives two independent equations per view.  Stacking for two views:
+\[
+  \mathbf{A} \mathbf{X} = \mathbf{0}, \quad
+  \mathbf{A} = \begin{pmatrix}
+    x_1 \mathbf{p}_1^{3T} - \mathbf{p}_1^{1T} \\
+    y_1 \mathbf{p}_1^{3T} - \mathbf{p}_1^{2T} \\
+    x_2 \mathbf{p}_2^{3T} - \mathbf{p}_2^{1T} \\
+    y_2 \mathbf{p}_2^{3T} - \mathbf{p}_2^{2T}
+  \end{pmatrix}
+\]
+where $\mathbf{p}_i^{jT}$ is the $j$-th row of $\mathbf{P}_i$.
+
+The solution is the right null-space of $\mathbf{A}$, found via SVD: $\mathbf{A} = \mathbf{U}\mathbf{S}\mathbf{V}^T$, and $\mathbf{X}$ is the last column of $\mathbf{V}$ (last row of $\mathbf{V}^T$), dehomogenised by dividing by $X_4$.
+
+\subsubsection{Incremental SfM Pipeline}
+
+\begin{enumerate}
+  \item \textbf{Feature detection \& matching}: SIFT with Lowe's ratio test ($\tau = 0.75$).
+  \item \textbf{Initialise}: Recover $\mathbf{E}$ between views 0 \& 1 via 5-point + RANSAC.  Decompose to $(\mathbf{R}, \mathbf{t})$.  Triangulate initial 3D points.
+  \item \textbf{Add views}: For each new view, estimate pose via essential matrix relative to a registered view, compose to absolute pose, triangulate new points.
+  \item \textbf{Outlier rejection}: Remove points beyond the 90th percentile distance from the median, and points behind cameras.
+  \item \textbf{Boundary estimation}: Project 3D points to the dominant plane and compute the convex hull.
+\end{enumerate}
+
+\subsection{Results}
+
+See output figures:
+\begin{itemize}
+  \item \texttt{sfm\_input\_views.png} --- The 4 input images with camera centres.
+  \item \texttt{matches\_*\_*.png} --- Feature matches between view pairs.
+  \item \texttt{sfm\_3d\_view*.png} --- 3D point cloud from different angles.
+  \item \texttt{sfm\_boundary\_topdown.png} --- Top-down boundary estimate.
+  \item \texttt{camera\_poses.txt} --- Full mathematical workouts including $\mathbf{K}$, $\mathbf{R}$, $\mathbf{t}$, $\mathbf{E}$, $\mathbf{F}$, DLT triangulation example, and reprojection verification.
+\end{itemize}
+
+\subsection{Camera Positions and Parameters}
+
+All camera parameters (intrinsic matrix, rotation, translation, camera centre in world coordinates, axis-angle representation) are recorded in \texttt{output/sfm/camera\_poses.txt}.  The file also includes:
+\begin{itemize}
+  \item The full epipolar geometry workout for views 0--1.
+  \item Verification that $\mathbf{x}_2^T \mathbf{F} \mathbf{x}_1 \approx 0$ for matched points.
+  \item A complete DLT triangulation example with SVD solution and reprojection error.
+\end{itemize}
+
+% ============================================================================
+\newpage
+\section{Appendix: Code}
+% ============================================================================
+
+\begin{itemize}
+  \item \texttt{optical\_flow.py} --- Optical flow computation, flow analysis, manual LK implementation, bilinear interpolation, and tracking validation.
+  \item \texttt{structure\_from\_motion.py} --- SfM pipeline with feature matching, pose estimation, triangulation, mathematical workouts, and visualisation.
+  \item \texttt{run\_all.py} --- Master script.
+\end{itemize}
+
+\end{document}

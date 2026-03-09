@@ -1,0 +1,29 @@
+Optical Flow Inference Summary -- video2
+================================================
+
+1. MOTION SPEED & DIRECTION
+   Mean magnitude: 0.422 px/frame
+   Max  magnitude: 18.481 px/frame
+   Dominant direction: 101.0 deg
+   -> Pixels with high magnitude indicate fast-moving objects/regions.
+   -> The HSV colour map encodes direction (hue) and speed (brightness).
+
+2. FOREGROUND / BACKGROUND SEGMENTATION
+   Threshold used: 3.30 px
+   Moving pixels: 21564 / 518400 (4.2%)
+   Static pixels: 496836 / 518400
+   -> The motion mask separates moving foreground from static background.
+   -> Detected 2 moving object regions.
+
+3. DIVERGENCE (expansion / contraction)
+   Mean divergence: 0.0017
+   Positive -> objects approaching camera (expansion / looming)
+   Negative -> objects receding (contraction)
+
+4. CURL (rotation)
+   Mean curl: 0.0001
+   Non-zero curl indicates rotational motion in the scene.
+
+5. TIME-TO-CONTACT
+   For forward camera motion, the Focus of Expansion (FOE) is the point
+   where flow vectors radiate outward. Time to contact ~ distance / speed.

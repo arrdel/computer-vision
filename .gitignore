@@ -13,6 +13,8 @@
 !/CSc8830_Module5_Assignment/**
 !/CSc8830_Module6_Assignment/
 !/CSc8830_Module6_Assignment/**
+!/CSc8830_Module7_Assignment/
+!/CSc8830_Module7_Assignment/**
 !/facemetrics/
 !/facemetrics/**
 !HARMONIC.pdf
@@ -72,3 +74,17 @@ Thumbs.db
 
 # mypy
 .mypy_cache/
+
+# Large video files
+*.mp4
+*.MP4
+*.avi
+*.mov
+*.mkv
+
+# Large extracted SfM view images (auto-generated from video)
+CSc8830_Module7_Assignment/sfm_images/
+
+# facemetrics data videos
+facemetrics/data/*.MP4
+facemetrics/data/*.mp4
