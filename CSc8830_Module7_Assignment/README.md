@@ -124,32 +124,121 @@ python structure_from_motion.py --images sfm_images/
 
 ---
 
-## Output
+## Results
+
+### Part 1 — Optical Flow & Motion Tracking
+
+#### Flow Analysis (magnitude, direction, motion mask, divergence, curl)
+
+<p align="center">
+  <img src="output/optical_flow/video1_flow_analysis.png" width="90%" alt="Video 1 — Flow Analysis"/>
+</p>
+<p align="center"><em>Video 1 — Dense optical flow analysis: magnitude, direction, motion mask, divergence, and curl fields.</em></p>
+
+<p align="center">
+  <img src="output/optical_flow/video2_flow_analysis.png" width="90%" alt="Video 2 — Flow Analysis"/>
+</p>
+<p align="center"><em>Video 2 — Dense optical flow analysis. Higher magnitudes and visible divergence indicate approaching objects.</em></p>
+
+#### Moving Object Detection
+
+<p align="center">
+  <img src="output/optical_flow/video1_moving_objects.png" width="45%" alt="Video 1 — Moving Objects"/>
+  &nbsp;&nbsp;
+  <img src="output/optical_flow/video2_moving_objects.png" width="45%" alt="Video 2 — Moving Objects"/>
+</p>
+<p align="center"><em>Foreground/background segmentation via flow magnitude thresholding with bounding box detection.</em></p>
+
+#### Tracking Validation (Manual LK vs OpenCV LK vs Template Matching)
+
+<p align="center">
+  <img src="output/optical_flow/video1_tracking_validation.png" width="90%" alt="Video 1 — Tracking Validation"/>
+</p>
+<p align="center"><em>Video 1 — Tracking validation: 20 feature points tracked by manual single-scale LK, OpenCV pyramidal LK, and template matching ground truth. Mean error &lt; 0.4 px.</em></p>
+
+<p align="center">
+  <img src="output/optical_flow/video2_tracking_validation.png" width="90%" alt="Video 2 — Tracking Validation"/>
+</p>
+<p align="center"><em>Video 2 — Tracking validation with larger displacements. Pyramidal LK outperforms single-scale LK for fast motion.</em></p>
+
+#### Bilinear Interpolation Demonstration
+
+<p align="center">
+  <img src="output/optical_flow/video1_bilinear_interp.png" width="60%" alt="Bilinear Interpolation"/>
+</p>
+<p align="center"><em>Step-by-step bilinear interpolation at a sub-pixel location with weight visualisation.</em></p>
+
+---
+
+### Part 2 — Structure from Motion
+
+#### Input Views (4 viewpoints)
+
+<p align="center">
+  <img src="output/sfm/sfm_input_views.png" width="90%" alt="SfM Input Views"/>
+</p>
+<p align="center"><em>Four frames extracted from the video, used as different viewpoints for 3D reconstruction.</em></p>
+
+#### SIFT Feature Matching
+
+<p align="center">
+  <img src="output/sfm/matches_0_1.png" width="45%" alt="Matches View 0–1"/>
+  &nbsp;&nbsp;
+  <img src="output/sfm/matches_2_3.png" width="45%" alt="Matches View 2–3"/>
+</p>
+<p align="center"><em>SIFT feature matches between view pairs (Lowe's ratio test, τ = 0.75). Left: views 0 ↔ 1. Right: views 2 ↔ 3.</em></p>
+
+#### 3D Reconstruction
+
+<p align="center">
+  <img src="output/sfm/sfm_3d_view1.png" width="30%" alt="3D View 1"/>
+  &nbsp;
+  <img src="output/sfm/sfm_3d_view2.png" width="30%" alt="3D View 2"/>
+  &nbsp;
+  <img src="output/sfm/sfm_3d_view3.png" width="30%" alt="3D View 3"/>
+</p>
+<p align="center"><em>Reconstructed 3D point cloud from three different viewing angles. Camera positions shown as coloured markers.</em></p>
+
+#### Boundary Estimation (Top-Down Convex Hull)
+
+<p align="center">
+  <img src="output/sfm/sfm_boundary_topdown.png" width="50%" alt="SfM Boundary"/>
+</p>
+<p align="center"><em>Top-down projection of the 3D point cloud with convex hull boundary estimate of the planar object.</em></p>
+
+---
+
+## Output Files
 
 ### Part 1 — Optical Flow (`output/optical_flow/`)
 
 | File | Description |
 |------|-------------|
-| `video1_dense_flow.mp4` | Dense Farnebäck flow (HSV colour-coded) |
-| `video1_sparse_flow.mp4` | Lucas-Kanade tracked feature points |
-| `video1_combined_flow.mp4` | Side-by-side dense + sparse |
-| `video1_flow_magnitude.png` | Flow magnitude over time (motion graph) |
-| `video1_flow_analysis.png` | Speed, direction, motion mask, divergence, curl |
-| `video1_bilinear_interp.png` | Bilinear interpolation demonstration |
-| `video1_tracking_validation.png` | LK tracking vs ground truth |
-| `video1_tracking_validation.txt` | Numerical tracking validation results |
-| *(same for video2)* | |
+| `video*_dense_flow.mp4` | Dense Farnebäck flow (HSV colour-coded) |
+| `video*_sparse_flow.mp4` | Lucas-Kanade tracked feature points |
+| `video*_arrows_flow.mp4` | Flow arrows overlaid on frames |
+| `video*_combined_flow.mp4` | Side-by-side dense + sparse |
+| `video*_flow_analysis.png` | Speed, direction, motion mask, divergence, curl |
+| `video*_flow_histograms.png` | Magnitude & direction histograms |
+| `video*_flow_magnitude.png` | Flow magnitude heatmap |
+| `video*_moving_objects.png` | Moving object detection with bounding boxes |
+| `video*_bilinear_interp.png` | Bilinear interpolation demonstration |
+| `video*_tracking_validation.png` | LK tracking vs ground truth |
+| `video*_tracking_validation.txt` | Numerical tracking results (per-point) |
+| `video*_tracking_error_hist.png` | Error distribution histogram |
+| `video*_bilinear_interp.txt` | Step-by-step interpolation computation |
+| `video*_flow_inference.txt` | Motion inference summary |
 
 ### Part 2 — SfM (`output/sfm/`)
 
 | File | Description |
 |------|-------------|
 | `sfm_input_views.png` | Grid of the 4 input images |
-| `matches_i_j.png` | Feature matches between view pairs |
+| `matches_i_j.png` | Feature matches between view pairs (6 pairs) |
 | `sfm_3d_view{1,2,3}.png` | 3D point cloud from different angles |
 | `sfm_boundary_topdown.png` | Top-down boundary estimate (convex hull) |
 | `points_3d.txt` | Reconstructed 3D point coordinates |
-| `camera_poses.txt` | Camera intrinsics, rotations, translations, centres |
+| `camera_poses.txt` | Camera K, R, t, epipolar geometry & DLT workout |
 
 ---
 
