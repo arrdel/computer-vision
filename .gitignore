@@ -84,6 +84,13 @@ Thumbs.db
 *.mov
 *.mkv
 
+# YOLO model weights (auto-downloaded at runtime)
+yolov8*.pt
+
+# Module 8 intermediate images (regenerated from stereo image)
+CSc8830_Module8_Assignment/images/
+CSc8830_Module8_Assignment/output/perspective_*.png
+
 # Large extracted SfM view images (auto-generated from video)
 CSc8830_Module7_Assignment/sfm_images/
 
