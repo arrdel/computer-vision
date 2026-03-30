@@ -75,7 +75,11 @@ def equirect_to_perspective(equirect, fov_deg=110.0, yaw_deg=0.0,
 
 
 # ─── disparity ────────────────────────────────────────────────
-def compute_disparity(lg, rg, num_disp=128):
+def compute_disparity(lg, rg, num_disp=None):
+    # Auto-scale numDisparities to image width (must be multiple of 16)
+    if num_disp is None:
+        num_disp = max(128, 16 * (min(lg.shape[1], lg.shape[0]) // 64))
+        num_disp = min(num_disp, 512)  # cap
     blk = 5
     sgbm = cv2.StereoSGBM_create(
         minDisparity=0, numDisparities=num_disp, blockSize=blk,
@@ -334,12 +338,30 @@ def run_360_pipeline(left_eq, right_eq, baseline, outdir,
 
 # ─── standard perspective pipeline ────────────────────────────
 def run_perspective_pipeline(left_img, right_img, baseline, outdir,
-                             focal_override=None):
+                             focal_override=None, max_depth=20.0):
     """Standard stereo pipeline for normal perspective images."""
     os.makedirs(outdir, exist_ok=True)
+
+    # Resize very large images for tractable stereo matching
+    H_orig, W_orig = left_img.shape[:2]
+    MAX_DIM = 2048
+    if max(H_orig, W_orig) > MAX_DIM:
+        scale = MAX_DIM / max(H_orig, W_orig)
+        new_w, new_h = int(W_orig * scale), int(H_orig * scale)
+        left_img  = cv2.resize(left_img,  (new_w, new_h), interpolation=cv2.INTER_AREA)
+        right_img = cv2.resize(right_img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        print(f"  Resized {W_orig}×{H_orig} → {new_w}×{new_h} (scale {scale:.3f})")
+    else:
+        scale = 1.0
+
     H, W = left_img.shape[:2]
     focal = focal_override if focal_override else max(H, W) * 0.8
+    # If we resized, scale the user-supplied focal length too
+    if focal_override and scale != 1.0:
+        focal *= scale
     cx_img, cy_img = W / 2.0, H / 2.0
+    print(f"  Focal={focal:.0f} px, baseline={baseline*100:.1f} cm, "
+          f"max_depth={max_depth:.0f} m")
 
     print(f"[1/4] Detecting tables and chairs …")
     dets = detect_yolo(left_img)
@@ -362,6 +384,7 @@ def run_perspective_pipeline(left_img, right_img, baseline, outdir,
     print("[3/4] Computing floor positions …")
     results = []
     annotated = left_img.copy()
+    skipped_depth = 0
     for det in dets:
         x1, y1, x2, y2 = det["bbox"]
         uc, vc = (x1+x2)/2, (y1+y2)/2
@@ -373,11 +396,17 @@ def run_perspective_pipeline(left_img, right_img, baseline, outdir,
         pos = pixel_to_floor(uc, vc, md, focal, baseline, cx_img, cy_img)
         if pos is None: continue
         fx, fy = pos
+        # Filter unrealistic depths
+        if abs(fy) > max_depth or abs(fx) > max_depth:
+            skipped_depth += 1
+            continue
         results.append((det["label"], fx, fy, fy, det["conf"]))
         col = RED_BGR if det["label"] == "table" else BLUE_BGR
         cv2.rectangle(annotated, (int(x1),int(y1)), (int(x2),int(y2)), col, 2)
         cv2.putText(annotated, f'{det["label"]} {fy:.1f}m',
                     (int(x1), int(y1)-6), cv2.FONT_HERSHEY_SIMPLEX, 0.55, col, 2)
+    if skipped_depth:
+        print(f"      Filtered {skipped_depth} detection(s) beyond {max_depth:.0f} m")
     cv2.imwrite(os.path.join(outdir, "detections_left.png"), annotated)
 
     if not results:
@@ -392,7 +421,14 @@ def run_perspective_pipeline(left_img, right_img, baseline, outdir,
     plot_floor_plan(results, outdir,
                     title_extra=f"\n(f={focal:.0f} px, b={baseline*100:.1f} cm)")
 
-    print(f"\n✓ {len(results)} objects → {outdir}/")
+    n_t = sum(1 for r in results if r[0] == "table")
+    n_c = sum(1 for r in results if r[0] == "chair")
+    print(f"\n  {'Label':<8} {'X (m)':>8} {'Y (m)':>8} {'Depth':>8} {'Conf':>6}")
+    print("  " + "-" * 42)
+    for r in sorted(results, key=lambda x: x[2]):
+        print(f"  {r[0]:<8} {r[1]:>8.2f} {r[2]:>8.2f} {r[3]:>8.2f} {r[4]:>6.2f}")
+
+    print(f"\n✓ {n_t} table(s), {n_c} chair(s) → {outdir}/")
     return results
 
 
@@ -436,6 +472,8 @@ def main():
                     help="FoV for equirect crop (default 110°)")
     ap.add_argument("--yaw-step", type=int, default=30,
                     help="Yaw step for 360° scan (default 30°)")
+    ap.add_argument("--max-depth", type=float, default=20.0,
+                    help="Max depth filter in metres (default 20)")
     ap.add_argument("--outdir",   type=str, default="output")
     args = ap.parse_args()
 
@@ -467,7 +505,8 @@ def main():
     else:
         print(f"  → Standard perspective stereo pair.\n")
         run_perspective_pipeline(left, right, args.baseline, args.outdir,
-                                focal_override=args.focal)
+                                focal_override=args.focal,
+                                max_depth=args.max_depth)
 
 
 if __name__ == "__main__":

@@ -22,36 +22,30 @@ $$X = \frac{(u - c_x) \cdot Z}{f}$$
 
 This gives us the 2D floor-plan coordinates $(X, Y)$ where $X$ is lateral and $Y = Z$ is depth.
 
-### 360° Equirectangular Stereo Handling
+### Pipeline
 
-The input image is a **side-by-side equirectangular stereo pair** (4096 × 2048, each eye 2048 × 2048). Standard stereo matching and object detection cannot be applied directly to equirectangular projections because:
+1. **Object detection** — YOLOv8 (COCO-pretrained, nano model) detects `chair` and `dining table` classes in the left image.
+2. **Stereo disparity** — Semi-Global Block Matching (SGBM) computes a dense disparity map from the stereo pair. `numDisparities` is auto-scaled to image width.
+3. **Depth estimation** — For each detected bounding box, the median disparity in the central 60% of the box is converted to depth using $Z = fb/d$.
+4. **Depth filtering** — Detections beyond a configurable max depth (default 20 m) are discarded as outliers.
+5. **2D localisation** — Depth + lateral offset gives $(X, Y)$ floor coordinates for every object.
+6. **Plotting** — Tables plotted as **red squares ■**, chairs as **blue circles ●** on a 2D X-Y floor plan.
 
-- **Straight lines are curved** → YOLO detection accuracy drops significantly
-- **Stereo geometry assumes perspective projection** → disparity-to-depth formulas break down
-
-The pipeline automatically detects equirectangular format (square per-eye aspect ratio) and activates a **multi-view 360° scanning** strategy:
-
-1. **Perspective extraction** — For each yaw angle (0°, 30°, 60°, …, 330°), extract a perspective view from both left and right equirectangular images using the gnomonic projection with configurable FoV (default 110°).
-2. **Object detection** — YOLOv8 (COCO-pretrained) detects `chair` and `dining table` in each perspective view.
-3. **Stereo disparity** — SGBM computes a dense disparity map for each perspective view pair.
-4. **Depth estimation** — Median disparity in the central 60% of each bounding box is converted to depth.
-5. **World-coordinate transform** — Each detection's camera-frame position is rotated back by the yaw angle to produce unified world-frame $(X, Y)$ coordinates.
-6. **Non-Maximum Suppression** — Detections from overlapping views within 0.8 m of each other (same class) are merged, keeping the highest-confidence one.
-7. **Plotting** — Tables plotted as **red squares**, chairs as **blue circles** on a 2D X-Y floor plan.
+The script also supports **360° equirectangular stereo images** (auto-detected). In that mode, it extracts overlapping perspective views at multiple yaw angles, detects/localises in each, transforms to world coordinates, and merges via NMS.
 
 ### Pipeline Summary
 
 ```
-image.png (SBS equirect 4096×2048)
-  ├── Split → left (2048×2048) + right (2048×2048)
-  ├── For each yaw in [0°, 30°, ..., 330°]:
-  │     ├── equirect → perspective (gnomonic, FoV=110°)
-  │     ├── YOLOv8 detection (chairs, tables)
-  │     ├── SGBM stereo disparity
-  │     ├── Disparity → depth → camera-frame (X, Z)
-  │     └── Rotate by yaw → world-frame (X_w, Z_w)
-  ├── Merge all detections (NMS, d < 0.8 m)
-  └── Plot 2D floor plan
+left.jpeg + right.jpeg (perspective stereo pair)
+  ├── [Optional] Resize to ≤ 2048 px (for tractable SGBM)
+  ├── YOLOv8 detection (chairs, tables)
+  ├── SGBM stereo disparity
+  ├── For each detection:
+  │     ├── Median disparity in bbox centre
+  │     ├── Depth Z = f·b / d
+  │     ├── Lateral X = (u − cx) · Z / f
+  │     └── Filter if depth > max_depth
+  └── Plot 2D floor plan (X vs Y)
 ```
 
 ## Usage
@@ -59,28 +53,27 @@ image.png (SBS equirect 4096×2048)
 ```bash
 conda activate computer_vision_env
 
+# With real stereo images (primary):
+python stereo_localization.py --left images/left.jpeg --right images/right.jpeg --outdir output_real
+
 # With a side-by-side stereo image (auto-detects 360° equirectangular):
 python stereo_localization.py --stereo image.png --outdir output
-
-# With separate left/right perspective images:
-python stereo_localization.py --left images/left.jpg --right images/right.jpg
 
 # Demo mode (synthetic classroom, no images needed):
 python stereo_localization.py --demo
 
 # Custom parameters:
-python stereo_localization.py --stereo image.png --fov 110 --yaw-step 30 --baseline 0.065
+python stereo_localization.py --left l.jpg --right r.jpg --baseline 0.10 --max-depth 15
 ```
 
 ## Output
 
 | File | Description |
 |------|-------------|
-| `output/classroom_layout_2d.png` | **2D X-Y floor-plan plot** (tables = red ■, chairs = blue ●) |
-| `output/detections_left.png` | Best perspective view with annotated bounding boxes |
-| `output/disparity_map.png` | Stereo disparity map (colour-coded) for best view |
-| `output/detections.csv` | Per-object: label, floor X, floor Y, depth, confidence |
-| `output/yaw_scans/` | Individual perspective views extracted at each yaw angle |
+| `output_real/classroom_layout_2d.png` | **2D X-Y floor-plan plot** (tables = red ■, chairs = blue ●) |
+| `output_real/detections_left.png` | Left image with annotated bounding boxes |
+| `output_real/disparity_map.png` | Stereo disparity map (colour-coded) |
+| `output_real/detections.csv` | Per-object: label, floor X, floor Y, depth, confidence |
 
 ## Requirements
 
@@ -95,25 +88,25 @@ Install: `pip install ultralytics` (auto-downloads YOLOv8 nano model on first ru
 
 ## Results
 
-The pipeline detected **3 tables** and **12 chairs** across 12 perspective views (yaw 0°–330° in 30° steps), merged via world-coordinate NMS.
+The pipeline was run on a real stereo pair taken in the classroom (`images/left.jpeg`, `images/right.jpeg`). It detected **6 tables** and **15 chairs** (2 outlier detections filtered at > 20 m).
 
 ### 2D Classroom Layout
 
 <p align="center">
-  <img src="output/classroom_layout_2d.png" width="80%" alt="Classroom Layout — 2D Floor Plan"/>
+  <img src="output_real/classroom_layout_2d.png" width="80%" alt="Classroom Layout — 2D Floor Plan"/>
 </p>
 <p align="center"><em>2D X-Y plot of detected tables (red ■) and chairs (blue ●). Camera is at the origin (black triangle).</em></p>
 
-### Detections on Best Perspective View
+### Detections on Left Image
 
 <p align="center">
-  <img src="output/detections_left.png" width="80%" alt="Detections on Perspective View"/>
+  <img src="output_real/detections_left.png" width="80%" alt="Detections on Left Image"/>
 </p>
-<p align="center"><em>Annotated perspective extraction (yaw with most detections) showing YOLO bounding boxes.</em></p>
+<p align="center"><em>YOLOv8 detections with bounding boxes — tables in red, chairs in blue, with estimated depth labels.</em></p>
 
 ### Disparity Map
 
 <p align="center">
-  <img src="output/disparity_map.png" width="60%" alt="Stereo Disparity Map"/>
+  <img src="output_real/disparity_map.png" width="60%" alt="Stereo Disparity Map"/>
 </p>
-<p align="center"><em>SGBM stereo disparity map for the best perspective view pair. Warmer colours = closer objects.</em></p>
+<p align="center"><em>SGBM stereo disparity map. Warmer colours = closer objects (higher disparity).</em></p>

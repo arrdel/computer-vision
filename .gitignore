@@ -88,7 +88,8 @@ Thumbs.db
 yolov8*.pt
 
 # Module 8 intermediate images (regenerated from stereo image)
-CSc8830_Module8_Assignment/images/
+CSc8830_Module8_Assignment/images/left.png
+CSc8830_Module8_Assignment/images/right.png
 CSc8830_Module8_Assignment/output/perspective_*.png
 
 # Large extracted SfM view images (auto-generated from video)
