@@ -16,8 +16,8 @@
 ## Stereo Input Images
 
 <p align="center">
-  <img src="images/right" width="48%" alt="Left Image"/>
-  <img src="images/left" width="48%" alt="Right Image"/>
+  <img src="images/right.jpeg" width="48%" alt="Left Image"/>
+  <img src="images/left.jpeg" width="48%" alt="Right Image"/>
 </p>
 <p align="center"><em>Left and right stereo images of the classroom captured with iPhone 16 Pro Max.</em></p>
 
