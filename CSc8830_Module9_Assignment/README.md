@@ -98,6 +98,13 @@ python uncalibrated_stereo.py \
 | Median disparity | 450.0 px |
 | **Estimated distance** | **3.56 m** |
 
+### All Detections
+
+<p align="center">
+  <img src="output/all_detections.png" width="80%" alt="Annotated Object"/>
+</p>
+<p align="center"><em>All detections in the image.</em></p>
+
 ### Annotated Object
 
 <p align="center">
